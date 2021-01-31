@@ -127,7 +127,7 @@ func (bm *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 	}
 
 
-	mult := ms.DistanceMultOut
+	mult := ms.DistanceMult
 
 	ac := a2 - startPos.AngleRV(endPos)
 	area := float32(ms.RestrictArea * math.Pi / 180.0)
@@ -152,12 +152,11 @@ func (bm *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 		} else {
 			a2 = a - offset
 		}
-
-		mult = ms.DistanceMult
 	} else if next != nil && !fromLong {
 		r := sq1 / (sq1 + sq2)
 		a := endPos.AngleRV(startPos)
 		a2 = a + r * anorm2(a2 - a)
+		mult = ms.DistanceMultOut
 	}
 
 	endTime := end.GetEndTime()

@@ -32,6 +32,7 @@ type IHitObject interface {
 	SetID(int64)
 	SetComboNumber(cn int64)
 	SetComboSet(set int64)
+	GetComboSet() int64
 
 	GetStackIndex(modifier difficulty.Modifier) int64
 	SetStackIndex(index int64, modifier difficulty.Modifier)
@@ -190,6 +191,10 @@ func (hitObject *HitObject) SetComboNumber(cn int64) {
 
 func (hitObject *HitObject) SetComboSet(set int64) {
 	hitObject.ComboSet = set
+}
+
+func (hitObject *HitObject) GetComboSet() int64 {
+	return hitObject.ComboSet
 }
 
 func (hitObject *HitObject) GetStackIndex(modifier difficulty.Modifier) int64 {

@@ -88,6 +88,8 @@ type Cursor struct {
 
 	rippleContainer *sprite.SpriteManager
 	time            float64
+
+	Index int
 }
 
 func NewCursor() *Cursor {
@@ -113,46 +115,51 @@ func NewCursor() *Cursor {
 
 func (cursor *Cursor) SetPos(pt vector.Vector2f) {
 	cursor.RawPosition = pt
-	tmp := pt
+
+	v := pt
+
+	x0 := osuRect.MinX
+	x1 := osuRect.MaxX
+	xf := x1 - x0
+
+	y0 := osuRect.MinY
+	y1 := osuRect.MaxY
+	yf := y1 - y0
 
 	if cursor.InvertDisplay {
-		tmp.Y = 384 - tmp.Y
+		v.Y = y1 - (v.Y - y0) + y0
 	}
 
 	if settings.Cursor.BounceOnEdges && settings.DIVIDES <= 2 {
-		tmp.X -= osuRect.MinX
-		tmp.Y -= osuRect.MinY
-		tmp.X = math32.Mod(tmp.X, 2*(osuRect.MaxX-osuRect.MinX))
-		tmp.Y = math32.Mod(tmp.Y, 2*(osuRect.MaxY-osuRect.MinY))
-		tmp.X += osuRect.MinX
-		tmp.Y += osuRect.MinY
-
-		for {
-			ok1, ok2 := false, false
-
-			if tmp.X < osuRect.MinX {
-				tmp.X = 2*osuRect.MinX - tmp.X
-			} else if tmp.X > osuRect.MaxX {
-				tmp.X = 2*osuRect.MaxX - tmp.X
-			} else {
-				ok1 = true
-			}
-
-			if tmp.Y < osuRect.MinY {
-				tmp.Y = 2*osuRect.MinY - tmp.Y
-			} else if tmp.Y > osuRect.MaxY {
-				tmp.Y = 2*osuRect.MaxY - tmp.Y
-			} else {
-				ok2 = true
-			}
-
-			if ok1 && ok2 {
-				break
-			}
+		if v.X < x0 {
+			v.X = x0 - (v.X - x0)
 		}
+        if v.Y < y0 {
+        	v.Y = y0 - (v.Y - y0)
+        }
+
+        if v.X > x1 {
+            x := v.X - x0
+            m := math32.Floor(x / xf)
+            x = math32.Mod(x, xf)
+            if math32.Mod(m, 2) != 0 {
+            	x = xf - x
+            }
+            v.X = x + x0
+        }
+
+        if v.Y > y1 {
+            y := v.Y - y0
+            m := math32.Floor(y / yf)
+            y = math32.Mod(y, yf)
+            if math32.Mod(m, 2) != 0 {
+            	y = yf - y
+            }
+            v.Y = y + y0
+        }
 	}
 
-	cursor.Position = tmp
+	cursor.Position = v
 }
 
 func (cursor *Cursor) SetScreenPos(pt vector.Vector2f) {

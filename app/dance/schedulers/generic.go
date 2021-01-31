@@ -8,6 +8,7 @@ import (
 	"github.com/wieku/danser-go/app/dance/spinners"
 	"github.com/wieku/danser-go/app/graphics"
 	"github.com/wieku/danser-go/app/settings"
+	"github.com/wieku/danser-go/app/skin"
 	"github.com/wieku/danser-go/framework/math/vector"
 	"math"
 	"math/rand"
@@ -94,6 +95,16 @@ func (scheduler *GenericScheduler) Update(time float64) {
 
 			if g.GetStartTime() > time {
 				break
+			}
+
+			if lastEndTime <= g.GetStartTime() {
+				var hue float64
+				if settings.Skin.UseColorsFromSkin && len(skin.GetInfo().ComboColors) > 0 {
+					hue = float64(skin.GetInfo().ComboColors[int(g.GetComboSet())%len(skin.GetInfo().ComboColors)].GetHue())
+				} else {
+					hue = settings.Objects.Colors.ComboColors[int(g.GetComboSet())%len(settings.Objects.Colors.ComboColors)].Hue
+				}
+				settings.Cursor.Colors.UpdateHit(scheduler.cursor.Index, hue)
 			}
 
 			lastEndTime = math.Max(lastEndTime, g.GetEndTime())

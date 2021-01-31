@@ -113,12 +113,14 @@ func (controller *GenericController) InitCursors() {
 		}
 	}
 
-	for i := range controller.cursors {
+	settings.Cursor.Colors.Init(len(controller.cursors))
+	for i, cursor := range controller.cursors {
 		spinMover := "circle"
 		if len(settings.Dance.Spinners) > 0 {
 			spinMover = settings.Dance.Spinners[i%len(settings.Dance.Spinners)]
 		}
 
+		cursor.Index = i
 		controller.schedulers[i].Init(objs[i].objs, controller.bMap.Diff.Mods, controller.cursors[i], spinners.GetMoverCtorByName(spinMover), true)
 	}
 }
