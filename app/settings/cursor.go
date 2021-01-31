@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"math"
 	color2 "github.com/wieku/danser-go/framework/math/color"
 )
 
@@ -11,8 +12,9 @@ func initCursor() *cursor {
 		TrailStyle:   1,
 		Style23Speed: 0.18,
 		Style4Shift:  0.5,
-		Colors: &color{
+		Colors: &cursorColors{
 			EnableRainbow: true,
+			EnableComboColoring: false,
 			RainbowSpeed:  8,
 			BaseColor: &hsv{
 				0,
@@ -22,7 +24,7 @@ func initCursor() *cursor {
 			HueOffset:             0,
 			FlashToTheBeat:        false,
 			FlashAmplitude:        0,
-			currentHue:            0,
+			currentHues:           nil,
 		},
 		EnableCustomTagColorOffset:  true,
 		TagColorOffset:              -36,
@@ -52,7 +54,7 @@ type cursor struct {
 	TrailStyle                  int
 	Style23Speed                float64
 	Style4Shift                 float64
-	Colors                      *color
+	Colors                      *cursorColors
 	EnableCustomTagColorOffset  bool    //true, if enabled, value set below will be used, if not, HueOffset of previous iteration will be used
 	TagColorOffset              float64 //-36, offset of the next tag cursor
 	EnableTrailGlow             bool    //true
@@ -76,19 +78,80 @@ type cursor struct {
 	SmokeEnabled                bool
 }
 
-func (cr *cursor) GetColors(divides, cursors int, beatScale, alpha float64) []color2.Color {
-	if !cr.EnableCustomTagColorOffset {
-		return cr.Colors.GetColors(divides*cursors, beatScale, alpha)
+type cursorColors struct {
+	EnableRainbow         bool    //true
+	EnableComboColoring   bool    //false
+	RainbowSpeed          float64 //8, degrees per second
+	BaseColor             *hsv    //0..360, if EnableRainbow is disabled then this value will be used to calculate base color
+	EnableCustomHueOffset bool    //false, false means that every iteration has an offset of i*360/n
+	HueOffset             float64 //0, custom hue offset for mirror collages
+	FlashToTheBeat        bool    //true, objects size is changing with music peak amplitude
+	FlashAmplitude        float64 //50, hue offset for flashes
+	currentHues           []float64
+	offsets               []float64
+}
+
+func (cl *cursorColors) Init(cursors int) {
+	var offset float64 
+	if cl.EnableCustomHueOffset {
+		offset = cl.HueOffset
+	} else {
+		offset = 360.0 / float64(cursors)
 	}
 
-	colors := cr.Colors.GetColors(divides, beatScale, alpha)
-	colors1 := make([]color2.Color, divides*cursors)
+	hues := make([]float64, cursors)
+	offsets := make([]float64, cursors)
+	for i := range hues {
+		hues[i] = cl.BaseColor.Hue
+		offsets[i] = offset * float64(i)
+	}
+	cl.currentHues = hues
+	cl.offsets = offsets
+}
 
-	for i := 0; i < divides; i++ {
-		for j := 0; j < cursors; j++ {
-			colors1[i*cursors+j] = colors[i].Shift(float32(j)*float32(cr.TagColorOffset), 0, 0)
+func (cl *cursorColors) Update(delta float64) {
+	if cl.EnableRainbow {
+		for i, hue := range cl.currentHues {
+			hue += cl.RainbowSpeed / 1000.0 * delta
+			hue = math.Mod(hue, 360)
+			if hue < 0.0 { hue += 360.0 }
+			cl.currentHues[i] = hue
 		}
 	}
+}
 
-	return colors1
+func (cl *cursorColors) UpdateHit(idx int, hue float64) {
+	if cl.EnableComboColoring {
+		cl.currentHues[idx] = hue
+	}
+}
+
+func (cr *cursor) GetColors(divides, cursors int, beatScale, alpha float64) []color2.Color {
+	cl := cr.Colors
+	flashOffset := 0.0
+	if cl.FlashToTheBeat {
+		flashOffset = cl.FlashAmplitude * (beatScale - 1.0) / (Audio.BeatScale - 1)
+	}
+
+	s := float32(cl.BaseColor.Saturation)
+	v := float32(cl.BaseColor.Value)
+	if !cr.EnableCustomTagColorOffset {
+		colors := make([]color2.Color, cursors)
+		for i, hue := range cl.currentHues {
+			hue = math.Mod(hue + flashOffset + cl.offsets[i], 360)
+			if hue < 0.0 { hue += 360.0 }
+			colors[i] = color2.NewHSVA(float32(hue), s, v, float32(alpha))
+		}
+		return colors
+	} else {
+		colors := make([]color2.Color, cursors*divides)
+		for i := 0; i < divides; i++ {
+			for j, hue := range cl.currentHues {
+				hue = math.Mod(hue + flashOffset + cl.offsets[j] + float64(i) * cr.TagColorOffset, 360)
+				if hue < 0.0 { hue += 360.0 }
+				colors[i*cursors+j] = color2.NewHSVA(float32(hue), s, v, float32(alpha))
+			}
+		}
+		return colors
+	}
 }

@@ -437,6 +437,10 @@ func GetColors() []color.Color {
 	return info.ComboColors
 }
 
+func GetBeatmapColors() []color.Color {
+	return beatmapColors
+}
+
 func GetColor(comboSet, comboSetHax int, base color.Color) (col color.Color) {
 	col = color.NewRGB(base.R, base.G, base.B)
 

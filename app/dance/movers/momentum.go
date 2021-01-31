@@ -1,6 +1,8 @@
 package movers
 
 import (
+	"math"
+
 	"github.com/wieku/danser-go/app/beatmap/difficulty"
 	"github.com/wieku/danser-go/app/beatmap/objects"
 	"github.com/wieku/danser-go/app/bmath"
@@ -8,7 +10,6 @@ import (
 	"github.com/wieku/danser-go/framework/math/curves"
 	"github.com/wieku/danser-go/framework/math/math32"
 	"github.com/wieku/danser-go/framework/math/vector"
-	"math"
 )
 
 // https://github.com/TechnoJo4/osu/blob/master/osu.Game.Rulesets.Osu/Replays/Movers/MomentumMover.cs
@@ -77,6 +78,8 @@ func (mover *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 	endPos := end.GetStackedStartPositionMod(mover.diff.Mods)
 
 	dst := startPos.Dst(endPos)
+	mult := ms.DistanceMult
+	multEnd := ms.DistanceMultEnd
 
 	var a2 float32
 	fromLong := false
@@ -93,6 +96,18 @@ func (mover *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 		}
 		if !same(mover.diff.Mods, o, objs[i+1], ms.SkipStackAngles) {
 			a2 = o.GetStackedStartPositionMod(mover.diff.Mods).AngleRV(objs[i+1].GetStackedStartPositionMod(mover.diff.Mods))
+			o2 := objs[i+1]
+			if s2, ok := o2.(objects.ILongObject); ok && ms.SliderPredict {
+				pos := o.GetStackedStartPositionMod(mover.diff.Mods)
+				pos2 := o2.GetStackedStartPositionMod(mover.diff.Mods)
+				s2a := s2.GetStartAngleMod(mover.diff.Mods)
+				dst2 := pos.Dst(pos2)
+				pos2 = vector.NewVec2fRad(s2a, dst2 * float32(multEnd)).Add(pos2)
+
+				a2 = pos.AngleRV(pos2)
+			} else {
+				a2 = o.GetStackedStartPositionMod(mover.diff.Mods).AngleRV(o2.GetStackedStartPositionMod(mover.diff.Mods))
+			}
 			break
 		}
 	}
@@ -103,6 +118,7 @@ func (mover *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 		sq1 = startPos.DstSq(endPos)
 		sq2 = endPos.DstSq(nextPos)
 	}
+
 
 	// stream detection logic stolen from spline mover
 	stream := false
@@ -126,12 +142,13 @@ func (mover *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 		a1 = startPos.AngleRV(mover.last)
 	}
 
-	mult := ms.DistanceMultOut
 
 	ac := a2 - endPos.AngleRV(startPos)
-	area := float32(ms.RestrictArea * math.Pi / 180.0)
 
-	if area > 0 && stream && anorm(ac) < anorm((2*math32.Pi)-area) {
+	area := float32(ms.RestrictArea * math.Pi / 180.0)
+	sarea := float32(ms.StreamArea * math.Pi / 180.0)
+
+	if sarea > 0 && stream && anorm(ac) < anorm((2*math32.Pi)-sarea) {
 		a := startPos.AngleRV(endPos)
 
 		sangle := float32(0.5 * math.Pi)
@@ -142,21 +159,25 @@ func (mover *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 		}
 
 		mult = ms.StreamMult
+		multEnd = ms.StreamMultEnd
 	} else if !fromLong && area > 0 && math32.Abs(anorm2(ac)) < area {
 		a := endPos.AngleRV(startPos)
 
-		offset := float32(ms.RestrictAngle * math.Pi / 180.0)
-		if (anorm(a2-a) < offset) != ms.RestrictInvert {
-			a2 = a + offset
+		if (anorm(a2-a) < float32(ms.RestrictAngle * math.Pi / 180.0)) != ms.RestrictInvert {
+			a2 = a + float32(ms.RestrictAngleAdd * math.Pi / 180.0)
 		} else {
-			a2 = a - offset
+			a2 = a - float32(ms.RestrictAngleSub * math.Pi / 180.0)
+		}
+	} else if next != nil && !fromLong && ms.InterpolateAngles {
+		r := sq1 / (sq1 + sq2)
+		if !ms.InvertAngleInterpolation {
+			r = sq2 / (sq1 + sq2)
 		}
 
-		mult = ms.DistanceMult
-	} else if next != nil && !fromLong {
-		r := sq1 / (sq1 + sq2)
 		a := startPos.AngleRV(endPos)
 		a2 = a + r*anorm2(a2-a)
+		mult = ms.DistanceMultOut
+		multEnd = ms.DistanceMultOutEnd
 	}
 
 	startTime := start.GetEndTime()
@@ -167,14 +188,23 @@ func (mover *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 		mult *= ms.DurationMult * (duration / ms.DurationTrigger)
 	}
 
-	p1 := vector.NewVec2fRad(a1, dst*float32(mult)).Add(startPos)
-	p2 := vector.NewVec2fRad(a2, dst*float32(mult)).Add(endPos)
+	_, es := end.(*objects.Slider)
+	bounce := !es && same(mover.diff.Mods, end, start, ms.SkipStackAngles)
+    if ms.EqualPosBounce > 0 && bounce {
+        a1 = startPos.AngleRV(mover.last)
+        a2 = a1 + math32.Pi
+        dst = mover.last.Dst(startPos)
+        mult = ms.EqualPosBounce
+        multEnd = ms.EqualPosBounce
+    }
 
-	if !same(mover.diff.Mods, start, end, ms.SkipStackAngles) {
+	p1 := vector.NewVec2fRad(a1, dst * float32(mult)).Add(startPos)
+	p2 := vector.NewVec2fRad(a2, dst * float32(multEnd)).Add(endPos)
+
+	mover.curve = curves.NewBezierNA([]vector.Vector2f{startPos, p1, p2, endPos})
+
+	if !bounce {
 		mover.last = p2
-		mover.curve = curves.NewBezierNA([]vector.Vector2f{startPos, p1, p2, endPos})
-	} else {
-		mover.curve = curves.NewBezierNA([]vector.Vector2f{startPos, endPos})
 	}
 
 	mover.startTime = start.GetEndTime()

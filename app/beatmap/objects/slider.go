@@ -219,6 +219,8 @@ func (slider *Slider) GetAsDummyCircles() []IHitObject {
 
 func (slider *Slider) createDummyCircle(time float64, inheritStart, inheritEnd bool) *Circle {
 	circle := DummyCircleInherit(slider.GetPositionAt(time), time, true, inheritStart, inheritEnd)
+	circle.ComboSet = slider.ComboSet
+	circle.ComboSetHax = slider.ComboSetHax
 	circle.StackOffset = slider.StackOffset
 	circle.StackOffsetHR = slider.StackOffsetHR
 	circle.StackOffsetEZ = slider.StackOffsetEZ

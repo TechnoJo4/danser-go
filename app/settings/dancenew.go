@@ -56,6 +56,7 @@ func initCursorDance() *cursorDance {
 					SkipStackAngles: false,
 					StreamRestrict:  true,
 					StreamMult:      0.7,
+					EqualPosBounce:  2,
 					DurationMult:    2,
 					DurationTrigger: 500,
 					RestrictAngle:   90,
@@ -63,6 +64,17 @@ func initCursorDance() *cursorDance {
 					RestrictInvert:  true,
 					DistanceMult:    0.6,
 					DistanceMultOut: 0.45,
+
+					// extra
+					SliderPredict: true,
+					InterpolateAngles: true,
+					InvertAngleInterpolation: false,
+					DistanceMultEnd: 0.6,
+					DistanceMultOutEnd: 0.45,
+					StreamMultEnd: 0.7,
+					RestrictAngleAdd: 90,
+					RestrictAngleSub: 90,
+					StreamArea: 50,
 				},
 			},
 			ExGon: []*exgon{
@@ -82,6 +94,17 @@ func initCursorDance() *cursorDance {
 					RotationSpeed: 1.6,
 					RadiusMultiplier: 0.98,
 					SpinnerRadius: 100,
+				},
+			},
+			Velocity: []*velocity{
+				{
+					Conserve: 0.666,
+					Add: 0.333,
+					Move: 0.666,
+					Predict: 0.333,
+					Minimum: 0.25,
+					Maximum: 0.5,
+					Bounce: false,
 				},
 			},
 		},
@@ -117,4 +140,5 @@ type moverSettings struct {
 	ExGon      []*exgon
 	Linear     []*linear
 	Pippi      []*pippi
+	Velocity   []*velocity
 }

@@ -43,16 +43,28 @@ type spline struct {
 }
 
 type momentum struct {
-	SkipStackAngles bool
-	StreamRestrict  bool
-	DurationMult    float64
-	DurationTrigger float64
-	StreamMult      float64
-	RestrictAngle   float64
-	RestrictArea    float64
-	RestrictInvert  bool
-	DistanceMult    float64
-	DistanceMultOut float64
+    SkipStackAngles bool
+    StreamRestrict  bool
+    StreamMult      float64
+    EqualPosBounce  float64
+    DurationMult    float64
+    DurationTrigger float64
+    RestrictAngle   float64
+    RestrictArea    float64
+    RestrictInvert  bool
+    DistanceMult    float64
+    DistanceMultOut float64
+
+    // extra
+    SliderPredict bool
+    InterpolateAngles bool
+    InvertAngleInterpolation bool
+    DistanceMultEnd float64
+    DistanceMultOutEnd float64
+    StreamMultEnd float64
+    RestrictAngleAdd float64
+    RestrictAngleSub float64
+    StreamArea float64
 }
 
 type exgon struct {
@@ -69,4 +81,16 @@ type pippi struct {
 	RotationSpeed    float64
 	RadiusMultiplier float64
 	SpinnerRadius    float64
+}
+
+type velocity struct {
+	Conserve float64
+	Add      float64
+	Move     float64
+	Predict  float64
+
+	Minimum float64
+	Maximum float64
+
+	Bounce bool
 }

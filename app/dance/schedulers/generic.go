@@ -8,6 +8,7 @@ import (
 	"github.com/wieku/danser-go/app/dance/spinners"
 	"github.com/wieku/danser-go/app/graphics"
 	"github.com/wieku/danser-go/app/settings"
+	"github.com/wieku/danser-go/app/skin"
 	"github.com/wieku/danser-go/framework/math/vector"
 	"math"
 	"math/rand"
@@ -103,6 +104,43 @@ func (scheduler *GenericScheduler) Update(time float64) {
 
 			if g.GetStartTime() > time {
 				break
+			}
+
+			if lastEndTime <= g.GetStartTime() {
+				var hue float64
+				cols := skin.GetColors()
+				if settings.Skin.UseColorsFromSkin && len(cols) > 0 {
+					cSet := g.GetComboSet()
+					if settings.Skin.UseBeatmapColors {
+						cSet = g.GetComboSetHax()
+					}
+
+					hue = float64(cols[int(cSet)%len(cols)].GetHue())
+				} else if settings.Objects.Colors.UseComboColors || settings.Objects.Colors.UseSkinComboColors || settings.Objects.Colors.UseBeatmapComboColors {
+					cSet := g.GetComboSet()
+					if settings.Objects.Colors.UseBeatmapComboColors {
+						cSet = g.GetComboSetHax()
+					}
+
+					cc := false
+					if settings.Objects.Colors.UseBeatmapComboColors && len(skin.GetBeatmapColors()) > 0 {
+						cols = skin.GetBeatmapColors()
+					} else if settings.Objects.Colors.UseSkinComboColors && len(skin.GetInfo().ComboColors) > 0 {
+						cols = skin.GetInfo().ComboColors
+					} else if settings.Objects.Colors.UseComboColors && len(settings.Objects.Colors.ComboColors) > 0 {
+						cCols := settings.Objects.Colors.ComboColors
+						hue = cCols[int(cSet)%len(cCols)].Hue
+						cc = true
+					}
+
+					if !cc {
+						hue = float64(cols[int(cSet)%len(cols)].GetHue())
+					}
+				} else {
+					hue = 0
+				}
+
+				settings.Cursor.Colors.UpdateHit(scheduler.cursor.Index, hue)
 			}
 
 			lastEndTime = math.Max(lastEndTime, g.GetEndTime())

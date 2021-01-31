@@ -205,8 +205,8 @@ func (body *Body) ensureFBO(baseProjView mgl32.Mat4) {
 		tLS := baseProjView.Mul4x1(mgl32.Vec4{body.topLeft.X, body.topLeft.Y, 0, 1}).Add(mgl32.Vec4{1, 1, 0, 0}).Mul(0.5)
 		bRS := baseProjView.Mul4x1(mgl32.Vec4{body.bottomRight.X, body.bottomRight.Y, 0, 1}).Add(mgl32.Vec4{1, 1, 0, 0}).Mul(0.5)
 
-		wS := float32(32768 / (settings.Graphics.GetWidthF()))
-		hS := float32(32768 / (settings.Graphics.GetHeightF()))
+		wS := float32(16384 / (settings.Graphics.GetWidthF()))
+		hS := float32(16384 / (settings.Graphics.GetHeightF()))
 
 		if -tLS.X()+bRS.X() > wS {
 			scaleX = float64(wS / (-tLS.X() + bRS.X()))

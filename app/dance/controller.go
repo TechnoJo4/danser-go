@@ -68,6 +68,8 @@ func (controller *GenericController) InitCursors() {
 			moverCtor = movers.NewMomentumMover
 		case "pippi":
 			moverCtor = movers.NewPippiMover
+		//case "velocity":
+		//	moverCtor = movers.NewVelocityMover
 		default:
 			moverCtor = movers.NewAngleOffsetMover
 			mover = "flower"
@@ -125,13 +127,14 @@ func (controller *GenericController) InitCursors() {
 		}
 	}
 
-	//Initialize spinner movers
-	for i := range controller.cursors {
+	settings.Cursor.Colors.Init(len(controller.cursors))
+	for i, cursor := range controller.cursors {
 		spinMover := "circle"
 		if len(settings.CursorDance.Spinners) > 0 {
 			spinMover = settings.CursorDance.Spinners[i%len(settings.CursorDance.Spinners)].Mover
 		}
 
+		cursor.Index = i
 		controller.schedulers[i].Init(objs[i].objs, controller.bMap.Diff, controller.cursors[i], spinners.GetMoverCtorByName(spinMover), true)
 	}
 }
