@@ -21,6 +21,12 @@ type MomentumMover struct {
 	first     bool
 	wasStream bool
 	mods      difficulty.Modifier
+
+	A2 float32
+	P0 vector.Vector2f
+	P1 vector.Vector2f
+	P2 vector.Vector2f
+	P3 vector.Vector2f
 }
 
 func NewMomentumMover() MultiPointMover {
@@ -74,7 +80,10 @@ func (bm *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 	endPos := end.GetStackedEndPositionMod(bm.mods)
 	startPos := start.GetStackedStartPositionMod(bm.mods)
 
+	ms := settings.Dance.Momentum
+
 	dst := endPos.Dst(startPos)
+	mult := ms.DistanceMult
 
 	var a2 float32
 	fromLong := false
@@ -90,7 +99,18 @@ func (bm *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 			break
 		}
 		if !same(bm.mods, o, objs[i+1]) {
-			a2 = o.GetStackedStartPositionMod(bm.mods).AngleRV(objs[i+1].GetStackedStartPositionMod(bm.mods))
+			o2 := objs[i+1]
+			if s2, ok := o2.(objects.ILongObject); ok {
+				pos := o.GetStackedStartPositionMod(bm.mods)
+				pos2 := o2.GetStackedStartPositionMod(bm.mods)
+				s2a := s2.GetStartAngleMod(bm.mods)
+				dst2 := pos.Dst(pos2)
+				pos2 = vector.NewVec2fRad(s2a, dst2 * float32(mult)).Add(pos2)
+
+				a2 = pos.AngleRV(pos2)
+			} else {
+				a2 = o.GetStackedStartPositionMod(bm.mods).AngleRV(o2.GetStackedStartPositionMod(bm.mods))
+			}
 			break
 		}
 	}
@@ -102,7 +122,6 @@ func (bm *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 		sq2 = startPos.DstSq(nextPos)
 	}
 
-	ms := settings.Dance.Momentum
 
 	// stream detection logic stolen from spline mover
 	stream := false
@@ -127,10 +146,13 @@ func (bm *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 	}
 
 
-	mult := ms.DistanceMult
-
 	ac := a2 - startPos.AngleRV(endPos)
 	area := float32(ms.RestrictArea * math.Pi / 180.0)
+	if fromLong {
+		bm.A2 = -999
+	} else {
+		bm.A2 = a2
+	}
 
 	if area > 0 && stream && anorm(ac) < anorm((2 * math32.Pi) - area) {
 		a := endPos.AngleRV(startPos)
@@ -172,8 +194,16 @@ func (bm *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 
 	if !same(bm.mods, end, start) {
 		bm.last = p2
+		bm.P0 = endPos
+		bm.P1 = p1
+		bm.P2 = p2
+		bm.P3 = startPos
 		bm.bz = curves.NewBezierNA([]vector.Vector2f{endPos, p1, p2, startPos})
 	} else {
+		bm.P0 = endPos
+		bm.P1 = startPos
+		bm.P2 = endPos
+		bm.P3 = startPos
 		bm.bz = curves.NewBezierNA([]vector.Vector2f{endPos, startPos})
 	}
 

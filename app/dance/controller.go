@@ -138,3 +138,7 @@ func (controller *GenericController) Update(time float64, delta float64) {
 func (controller *GenericController) GetCursors() []*graphics.Cursor {
 	return controller.cursors
 }
+
+func (controller *GenericController) GetScheds() []schedulers.Scheduler {
+	return controller.schedulers
+}

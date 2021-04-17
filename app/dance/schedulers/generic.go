@@ -148,3 +148,7 @@ func (scheduler *GenericScheduler) Update(time float64) {
 
 	scheduler.lastTime = time
 }
+
+func (scheduler *GenericScheduler) GetMover() movers.MultiPointMover {
+	return scheduler.mover
+}

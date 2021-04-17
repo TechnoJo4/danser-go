@@ -2,12 +2,21 @@ package states
 
 import (
 	"fmt"
+	"log"
+	"math"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strconv"
+
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/wieku/danser-go/app/beatmap"
 	"github.com/wieku/danser-go/app/beatmap/difficulty"
 	"github.com/wieku/danser-go/app/bmath"
 	camera2 "github.com/wieku/danser-go/app/bmath/camera"
 	"github.com/wieku/danser-go/app/dance"
+	"github.com/wieku/danser-go/app/dance/movers"
+	"github.com/wieku/danser-go/app/dance/schedulers"
 	"github.com/wieku/danser-go/app/discord"
 	"github.com/wieku/danser-go/app/graphics"
 	"github.com/wieku/danser-go/app/input"
@@ -27,12 +36,6 @@ import (
 	"github.com/wieku/danser-go/framework/math/vector"
 	"github.com/wieku/danser-go/framework/qpc"
 	"github.com/wieku/danser-go/framework/statistic"
-	"log"
-	"math"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strconv"
 )
 
 const windowsOffset = 15
@@ -208,6 +211,14 @@ func NewPlayer(beatMap *beatmap.BeatMap) *Player {
 		player.controller = dance.NewGenericController()
 		player.controller.SetBeatMap(player.bMap)
 		player.controller.InitCursors()
+
+		if controller, ok := player.controller.(*dance.GenericController); ok {
+			if scheduler, ok := controller.GetScheds()[0].(*schedulers.GenericScheduler); ok {
+				if mover, ok := scheduler.GetMover().(*movers.MomentumMover); ok {
+					player.overlay = overlays.NewMomentumOverlay(mover)
+				}
+			}
+		}
 	}
 
 	player.lastTime = -1
