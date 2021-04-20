@@ -46,26 +46,44 @@ func (overlay *MomentumOverlay) DrawNormal(batch *batch.QuadBatch, colors []colo
 
 	overlay.shaper.Begin()
 
+	if m.A2 != -999 {
+		overlay.shaper.SetColor(1, 0, 0, 1)
+		overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(m.A2 + math.Pi, m.P3.Dst(m.P0))), 4)
+
+		var pt, mt float32 // thickness
+		if m.AP {
+			pt = 6
+			mt = 2
+		} else {
+			pt = 2
+			mt = 6
+		}
+
+		aA := m.P0.AngleRV(m.P3)
+
+		overlay.shaper.SetColor(1, 1, 1, 1) // middle
+		overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(aA, 2000)), 2)
+
+		overlay.shaper.SetColor(1, 0, 1, 1)
+		overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(aA + area, 2000)), pt)
+
+		overlay.shaper.SetColor(1, 0, 1, 1)
+		overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(aA - area, 2000)), mt)
+
+		a := m.P3.AngleRV(m.P0)
+
+		overlay.shaper.SetColor(1, 1, 0, 1)
+		overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(a - angle, 2000)), pt)
+
+		overlay.shaper.SetColor(1, 1, 0, 1)
+		overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(a + angle, 2000)), mt)
+	}
+
+	// bézier path
 	overlay.shaper.SetColor(0, 1, 0, 1)
 	overlay.shaper.DrawLineV(m.P0, m.P1, 3)
 	overlay.shaper.DrawLineV(m.P1, m.P2, 3)
 	overlay.shaper.DrawLineV(m.P2, m.P3, 5)
-
-	if m.A2 != -999 {
-		overlay.shaper.SetColor(1, 0, 0, 1)
-		overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(m.A2, 1000)), 2)
-		overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(m.A2 + math.Pi, m.P3.Dst(m.P0))), 4)
-	}
-
-	aA := m.P0.AngleRV(m.P3)
-	overlay.shaper.SetColor(0, 0, 1, 1)
-	overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(aA - area, 2000)), 2)
-	overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(aA + area, 2000)), 2)
-
-	a := m.P3.AngleRV(m.P0)
-	overlay.shaper.SetColor(1, 1, 0, 1)
-	overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(a - angle, 2000)), 1)
-	overlay.shaper.DrawLineV(m.P3, m.P3.Add(vector.NewVec2fRad(a + angle, 2000)), 1)
 
 	overlay.shaper.End()
 }
@@ -74,14 +92,16 @@ func (overlay *MomentumOverlay) DrawHUD(batch *batch.QuadBatch, _ []color2.Color
 	batch.SetColor(0, 1, 0, 1)
 	overlay.nFont.DrawMonospaced(batch, 20, 20, 40, "Mover Path")
 
-	batch.SetColor(1, 0, 0, 1)
-	overlay.nFont.DrawMonospaced(batch, 20, 60, 40, "Next Obj Angle")
+	if overlay.mover.A2 != -999 {
+		batch.SetColor(1, 0, 0, 1)
+		overlay.nFont.DrawMonospaced(batch, 20, 60, 40, "Next Obj Angle")
 
-	batch.SetColor(0, 0, 1, 1)
-	overlay.nFont.DrawMonospaced(batch, 20, 100, 40, "RestrictArea")
+		batch.SetColor(1, 0, 1, 1)
+		overlay.nFont.DrawMonospaced(batch, 20, 100, 40, "RestrictArea")
 
-	batch.SetColor(1, 1, 0, 1)
-	overlay.nFont.DrawMonospaced(batch, 20, 140, 40, "RestrictAngle")
+		batch.SetColor(1, 1, 0, 1)
+		overlay.nFont.DrawMonospaced(batch, 20, 140, 40, "RestrictAngle")
+	}
 }
 
 func (overlay *MomentumOverlay) IsBroken(_ *graphics.Cursor) bool {

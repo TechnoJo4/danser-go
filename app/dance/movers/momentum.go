@@ -22,6 +22,7 @@ type MomentumMover struct {
 	wasStream bool
 	mods      difficulty.Modifier
 
+	AP bool
 	A2 float32
 	P0 vector.Vector2f
 	P1 vector.Vector2f
@@ -148,11 +149,8 @@ func (bm *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 
 	ac := a2 - startPos.AngleRV(endPos)
 	area := float32(ms.RestrictArea * math.Pi / 180.0)
-	if fromLong {
-		bm.A2 = -999
-	} else {
-		bm.A2 = a2
-	}
+
+	bm.A2 = -999
 
 	if area > 0 && stream && anorm(ac) < anorm((2 * math32.Pi) - area) {
 		a := endPos.AngleRV(startPos)
@@ -168,10 +166,13 @@ func (bm *MomentumMover) SetObjects(objs []objects.IHitObject) int {
 	} else if !fromLong && area > 0 && math32.Abs(anorm2(ac)) < area {
 		a := startPos.AngleRV(endPos)
 
+		bm.A2 = a2
 		offset := float32(ms.RestrictAngle * math.Pi / 180.0)
 		if (anorm(a2 - a) < offset) != ms.RestrictInvert {
 			a2 = a + offset
+			bm.AP = false
 		} else {
+			bm.AP = true
 			a2 = a - offset
 		}
 	} else if next != nil && !fromLong {
